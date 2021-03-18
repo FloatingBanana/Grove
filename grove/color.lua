@@ -360,7 +360,7 @@ function color:divide(other)
 end
 
 function color:invert()
-    self:setByteRGBA(1 - self.r, 1 - self.g, 1 - self.b, self.a)
+    self:setRGBA(1 - self.r, 1 - self.g, 1 - self.b, self.a)
 
     return self
 end
