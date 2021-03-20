@@ -22,33 +22,10 @@
 	SOFTWARE.
 ]]
 
-
-local anm = {}
-local funcs = {}
-
 local floor = math.floor
 
-local function copy_to_table(from, to)
-	for k, v in pairs(from) do
-		to[k] = v
-	end
-end
-
-function anm.newAnimation(imageList, speed, range)
-	local new = {
-		images = imageList,
-		speed = speed or 30,
-		frame = 1,
-		time = 0,
-		playing = false,
-		rewind = false,
-		loop = false,
-		range = range or #imageList
-	}
-	copy_to_table(funcs, new)
-
-	return new
-end
+local anm = {}
+anm.__index = anm
 
 function anm.loadFolder(folder, callback)
 	local images = {}
@@ -60,16 +37,16 @@ function anm.loadFolder(folder, callback)
 		local result = callback(#files, file, extension)
 
 		if result then
-			images[result] = love.graphics.newImage(folder.."/"..file)
+			images[result] = love.graphics.newImage(folder.."/"..file.."."..extension)
 		end
 	end
 
 	return images
 end
 
-function funcs:update(dt)
+function anm:update(dt)
 	if self.playing then
-		local dir = self.rewind and 1 or -1
+		local dir = self.rewind and -1 or 1
 
 		self.time = self.time + self.speed * dt
 
@@ -78,37 +55,15 @@ function funcs:update(dt)
 			self.time = self.time - 1
 		end
 
-		if self.loop then
-			if self.frame < 1 then
-				self.frame = self.range
+		local startFrame = self.rewind and 1 or self.range
+		local endFrame = self.rewind and self.range or 1
 
-				if self.onFinish then
-					self:onFinish()
-				end
+		if self.frame < 1 or self.frame > self.range then
+			self.playing = self.loop
+			self.frame = self.loop and endFrame or startFrame
 
-			elseif self.frame > self.range then
-				self.frame = 1
-
-				if self.onFinish then
-					self:onFinish()
-				end
-			end
-		else
-			if self.frame < 1 then
-				self.frame = 1
-				self.playing = false
-
-				if self.onFinish then
-					self:onFinish()
-				end
-
-			elseif self.frame > self.range then
-				self.frame = self.range
-				self.playing = false
-
-				if self.onFinish then
-					self:onFinish()
-				end
+			if self.onFinish then
+				self:onFinish()
 			end
 		end
 	end
@@ -116,121 +71,128 @@ function funcs:update(dt)
 	return self
 end
 
-function funcs:stop()
-	self.playing = false
-	self.time = 0
-
-	if self.rewind then
-		self.frame = self.range
-	else
-		self.frame = 1
-	end
-
-	return self
-end
-
-function funcs:pause()
-	self.playing = false
-
-	return self
-end
-
-function funcs:play()
-	self.playing = true
-
-	if self.rewind then
-		if self.frame == 1 then
-			self.frame = self.range
-		end
-	else
-		if self.frame == self.range then
-			self.frame = 1
-		end
-	end
-
-	return self
-end
-
-function funcs:draw(...)
+function anm:draw(...)
 	love.graphics.draw(self.images[self.frame], ...)
 
 	return self
 end
 
-function funcs:getFrame()
+function anm:stop()
+	self.playing = false
+	self.time = 0
+	self.frame = self.rewind and self.range or 1
+
+	return self
+end
+
+function anm:pause()
+	self.playing = false
+
+	return self
+end
+
+function anm:play()
+	self.playing = true
+
+	local startFrame = self.rewind and self.range or 1
+	local endFrame = self.rewind and 1 or self.range
+
+	if self.frame == endFrame then
+		self.frame = startFrame
+	end
+
+	return self
+end
+
+function anm:getFrame()
 	return self.frame
 end
 
-function funcs:getSpeed()
+function anm:getSpeed()
 	return self.speed
 end
 
-function funcs:getRange()
+function anm:getRange()
 	return self.range
 end
 
-function funcs:getImage(frame)
+function anm:getImage(frame)
 	return self.images[frame or self.frame]
 end
 
-function funcs:getAllImages()
+function anm:getAllImages()
 	return self.frames
 end
 
-function funcs:isLooping()
+function anm:isLooping()
 	return self.loop
 end
 
-function funcs:isRewinding()
+function anm:isRewinding()
 	return self.rewind
 end
 
-function funcs:isPlaying()
+function anm:isPlaying()
 	return self.playing
 end
 
-function funcs:setFrame(frame)
+function anm:setFrame(frame)
 	self.frame = frame
 	self.time = 0
 
 	return self
 end
 
-function funcs:setSpeed(speed)
+function anm:setSpeed(speed)
 	self.speed = speed
 
 	return self
 end
 
-function funcs:setRange(range)
+function anm:setRange(range)
 	self.range = range
 
 	return self
 end
 
-function funcs:setImage(image, frame)
+function anm:setImage(image, frame)
 	self.images[frame or self.frame] = image
 
 	return self
 end
 
-function funcs:setAllImages(images)
+function anm:setAllImages(images)
 	self.images = images
 	self.range = #images
 
 	return self
 end
 
-function funcs:setLoop(loop)
+function anm:setLoop(loop)
 	self.loop = loop
 
 	return self
 end
 
-function funcs:setRewind(rewind)
+function anm:setRewind(rewind)
 	self.rewind = rewind
 
 	return self
 end
 
-return anm
+function anm.__call(_, imageList, speed, range)
+	local new = {
+		images = imageList,
+		speed = speed or 30,
+		frame = 1,
+		time = 0,
+		playing = false,
+		rewind = false,
+		loop = false,
+		range = range or #imageList
+	}
+
+	return setmetatable(new, anm)
+end
+
+return setmetatable({}, anm)
