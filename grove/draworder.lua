@@ -42,7 +42,7 @@ local function defaultSort(a, b)
 	end
 end
 
-function draworder:_recicle_from_list(index)
+local function _recicle_from_list(self, index)
 	local t = self.list[index]
 
 	for j=1, #t do
@@ -52,6 +52,7 @@ function draworder:_recicle_from_list(index)
 	t.func = nil
 	t.order = nil
 	t.stack = nil
+	self.list[index] = nil
 	self.pool[#self.pool+1] = t
 end
 
@@ -89,10 +90,9 @@ function draworder:present()
 			love.graphics[func](unpack(item))
 		end
 
-		self:_recicle_from_list(i)
+		_recicle_from_list(self, i)
 	end
 end
-
 
 function draworder:setSortingFunction(func)
 	self.sortFunc = func or defaultSort
@@ -100,7 +100,7 @@ end
 
 function draworder:clearQueue()
 	for i=1, #self.list do
-		self:_recicle_from_list(i)
+		_recicle_from_list(self, i)
 	end
 end
 
